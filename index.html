@@ -9,3 +9,27 @@
   <p>If you can see this, your GitHub Pages is working.</p>
 </body>
 </html>
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
+    authDomain: "cath-lab-sim.firebaseapp.com",
+    projectId: "cath-lab-sim",
+    storageBucket: "cath-lab-sim.firebasestorage.app",
+    messagingSenderId: "626683715160",
+    appId: "1:626683715160:web:ac69363c84f5a40195742d",
+    measurementId: "G-8FKR5QNEYT"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
