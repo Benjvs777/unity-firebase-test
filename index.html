@@ -2,34 +2,65 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Unity ↔ Firebase Test</title>
+  <title>Firebase Toggle Test</title>
 </head>
 <body>
-  <h1>Hello from GitHub Pages!</h1>
-  <p>If you can see this, your GitHub Pages is working.</p>
+  <h1>Firebase Toggle Test</h1>
+  <p>Toggle state: <span id="toggleState">loading...</span></p>
+  <button id="toggleButton">Flip Toggle</button>
+
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
+      authDomain: "cath-lab-sim.firebaseapp.com",
+      projectId: "cath-lab-sim",
+      storageBucket: "cath-lab-sim.firebasestorage.app",
+      messagingSenderId: "626683715160",
+      appId: "1:626683715160:web:ac69363c84f5a40195742d",
+      measurementId: "G-8FKR5QNEYT"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const toggleDoc = doc(db, "game", "toggle"); // Firestore path: game/toggle
+
+    const toggleStateEl = document.getElementById("toggleState");
+    const toggleButton = document.getElementById("toggleButton");
+
+    // Function to read toggle from Firestore
+    async function readToggle() {
+      const docSnap = await getDoc(toggleDoc);
+      let value = false;
+      if (docSnap.exists()) {
+        value = docSnap.data().value;
+      } else {
+        // Initialize if doesn't exist
+        await setDoc(toggleDoc, { value: false });
+      }
+      toggleStateEl.innerText = value;
+      return value;
+    }
+
+    // Function to flip toggle
+    async function flipToggle() {
+      const current = await readToggle();
+      const newValue = !current;
+      await setDoc(toggleDoc, { value: newValue });
+      toggleStateEl.innerText = newValue;
+    }
+
+    // Setup button click
+    toggleButton.addEventListener("click", flipToggle);
+
+    // Load initial value
+    readToggle();
+  </script>
 </body>
 </html>
-
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
-    authDomain: "cath-lab-sim.firebaseapp.com",
-    projectId: "cath-lab-sim",
-    storageBucket: "cath-lab-sim.firebasestorage.app",
-    messagingSenderId: "626683715160",
-    appId: "1:626683715160:web:ac69363c84f5a40195742d",
-    measurementId: "G-8FKR5QNEYT"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
