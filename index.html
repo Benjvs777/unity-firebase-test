@@ -66,11 +66,14 @@
       }
     });
 
-    toggleButton.addEventListener("click", async () => {
-      const snapshot = await toggleRef.get();
-      const current = snapshot.exists() ? snapshot.data().value : false;
-      await setDoc(toggleRef, { value: !current });
-    });
+import { getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+toggleButton.addEventListener("click", async () => {
+  const snapshot = await getDoc(toggleRef);       // <-- use getDoc()
+  const current = snapshot.exists() ? snapshot.data().value : false;
+  await setDoc(toggleRef, { value: !current });
+});
+
   </script>
 
 </body>
