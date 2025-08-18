@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Toggle Test</title>
+  <title>Firebase Mobile Controller</title>
   <style>
     body {
       display: flex;
@@ -16,7 +16,7 @@
       background-color: #f0f0f0;
     }
     h1 { margin-bottom: 20px; }
-    #toggleButton {
+    .toggleButton {
       width: 80vw;
       max-width: 300px;
       height: 80px;
@@ -31,51 +31,46 @@
 </head>
 <body>
 
-  <h1>Firebase Toggle Test</h1>
-  <p>Toggle state: <span id="toggleState">loading...</span></p>
-  <button id="toggleButton">Flip Toggle</button>
+  <h1>Game Controller</h1>
+  <p>Toggle 1: <span id="toggle1State">loading...</span></p>
+  <button id="toggle1Button" class="toggleButton">Flip Toggle 1</button>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot, getDoc } 
-      from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
       authDomain: "cath-lab-sim.firebaseapp.com",
+      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "cath-lab-sim",
       storageBucket: "cath-lab-sim.firebasestorage.app",
       appId: "1:626683715160:web:ac69363c84f5a40195742d"
     };
 
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db = getDatabase(app);
 
-    const toggleRef = doc(db, "game", "toggle");
-    const toggleButton = document.getElementById("toggleButton");
-    const toggleStateEl = document.getElementById("toggleState");
+    const toggle1Ref = ref(db, "Game/toggle1");
+    const toggle1StateEl = document.getElementById("toggle1State");
+    const toggle1Button = document.getElementById("toggle1Button");
 
     // Real-time listener
-    onSnapshot(toggleRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const value = snapshot.data().value;
-        toggleStateEl.innerText = value;          
-        toggleButton.textContent = value ? "ON" : "OFF";  
-        toggleButton.style.backgroundColor = value ? "#28a745" : "#dc3545";
-      } else {
-        setDoc(toggleRef, { value: false });
-      }
+    onValue(toggle1Ref, (snapshot) => {
+      const value = snapshot.val();
+      toggle1StateEl.innerText = value;
+      toggle1Button.textContent = value ? "ON" : "OFF";
+      toggle1Button.style.backgroundColor = value ? "#28a745" : "#dc3545";
     });
 
-    // Click handler
-    toggleButton.addEventListener("click", async () => {
-      const snapshot = await getDoc(toggleRef);      
-      const current = snapshot.exists() ? snapshot.data().value : false;
-      await setDoc(toggleRef, { value: !current });
+    // Flip toggle
+    toggle1Button.addEventListener("click", async () => {
+      const snapshot = await toggle1Ref.get();
+      const current = snapshot.exists() ? snapshot.val() : false;
+      set(toggle1Ref, !current);
     });
-
   </script>
 
 </body>
 </html>
-
