@@ -1,66 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Firebase Toggle Test</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    h1 { margin-bottom: 20px; }
+    #toggleButton {
+      width: 80vw;
+      max-width: 300px;
+      height: 80px;
+      font-size: 2em;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
+
   <h1>Firebase Toggle Test</h1>
   <p>Toggle state: <span id="toggleState">loading...</span></p>
   <button id="toggleButton">Flip Toggle</button>
 
   <script type="module">
-    // Import Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
       authDomain: "cath-lab-sim.firebaseapp.com",
       projectId: "cath-lab-sim",
       storageBucket: "cath-lab-sim.firebasestorage.app",
-      messagingSenderId: "626683715160",
-      appId: "1:626683715160:web:ac69363c84f5a40195742d",
-      measurementId: "G-8FKR5QNEYT"
+      appId: "1:626683715160:web:ac69363c84f5a40195742d"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const toggleDoc = doc(db, "game", "toggle"); // Firestore path: game/toggle
-
-    const toggleStateEl = document.getElementById("toggleState");
+    const toggleRef = doc(db, "game", "toggle");
     const toggleButton = document.getElementById("toggleButton");
+    const toggleStateEl = document.getElementById("toggleState");
 
-    // Function to read toggle from Firestore
-    async function readToggle() {
-      const docSnap = await getDoc(toggleDoc);
-      let value = false;
-      if (docSnap.exists()) {
-        value = docSnap.data().value;
+    // Real-time listener
+    onSnapshot(toggleRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const value = snapshot.data().value;
+        toggleStateEl.innerText = value;          // updates the <span>
+        toggleButton.textContent = value ? "ON" : "OFF";  // button text
+        toggleButton.style.backgroundColor = value ? "#28a745" : "#dc3545";
       } else {
-        // Initialize if doesn't exist
-        await setDoc(toggleDoc, { value: false });
+        setDoc(toggleRef, { value: false });
       }
-      toggleStateEl.innerText = value;
-      return value;
-    }
+    });
 
-    // Function to flip toggle
-    async function flipToggle() {
-      const current = await readToggle();
-      const newValue = !current;
-      await setDoc(toggleDoc, { value: newValue });
-      toggleStateEl.innerText = newValue;
-    }
-
-    // Setup button click
-    toggleButton.addEventListener("click", flipToggle);
-
-    // Load initial value
-    readToggle();
+    toggleButton.addEventListener("click", async () => {
+      const snapshot = await toggleRef.get();
+      const current = snapshot.exists() ? snapshot.data().value : false;
+      await setDoc(toggleRef, { value: !current });
+    });
   </script>
+
 </body>
 </html>
