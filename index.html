@@ -37,7 +37,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, onSnapshot, getDoc } 
+      from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
@@ -58,23 +59,23 @@
     onSnapshot(toggleRef, (snapshot) => {
       if (snapshot.exists()) {
         const value = snapshot.data().value;
-        toggleStateEl.innerText = value;          // updates the <span>
-        toggleButton.textContent = value ? "ON" : "OFF";  // button text
+        toggleStateEl.innerText = value;          
+        toggleButton.textContent = value ? "ON" : "OFF";  
         toggleButton.style.backgroundColor = value ? "#28a745" : "#dc3545";
       } else {
         setDoc(toggleRef, { value: false });
       }
     });
 
-import { getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-
-toggleButton.addEventListener("click", async () => {
-  const snapshot = await getDoc(toggleRef);       // <-- use getDoc()
-  const current = snapshot.exists() ? snapshot.data().value : false;
-  await setDoc(toggleRef, { value: !current });
-});
+    // Click handler
+    toggleButton.addEventListener("click", async () => {
+      const snapshot = await getDoc(toggleRef);      
+      const current = snapshot.exists() ? snapshot.data().value : false;
+      await setDoc(toggleRef, { value: !current });
+    });
 
   </script>
 
 </body>
 </html>
+
