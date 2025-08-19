@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Room</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    input, button { font-size: 1.2em; padding: 10px; margin: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Join a Room</h1>
+
+<input type="text" id="roomCodeInput" placeholder="Enter room code">
+<button id="joinButton">Join Room</button>
+
+<p id="status">Status: -</p>
+<pre id="roomData"></pre>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const joinButton = document.getElementById("joinButton");
+  const roomInput = document.getElementById("roomCodeInput");
+  const statusEl = document.getElementById("status");
+  const roomDataEl = document.getElementById("roomData");
+
+  joinButton.addEventListener("click", async () => {
+    const code = roomInput.value.trim().toUpperCase();
+    if (!code) return alert("Enter a room code");
+
+    const roomRef = ref(db, "rooms/" + code);
+
+    try {
+      const snapshot = await get(roomRef);
+      if (snapshot.exists()) {
+        statusEl.textContent = "Status: Room found!";
+        roomDataEl.textContent = JSON.stringify(snapshot.val(), null, 2);
+      } else {
+        statusEl.textContent = "Status: Room not found";
+        roomDataEl.textContent = "";
+      }
+    } catch (error) {
+      statusEl.textContent = "Status: Error fetching room";
+      console.error(error);
+    }
+  });
+</script>
+
+</body>
+</html>
