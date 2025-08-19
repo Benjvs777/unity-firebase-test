@@ -3,152 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Game Controller</title>
+  <title>Join Room</title>
   <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f0f0f0;
-      padding: 20px;
-    }
-
-    h1 { margin-bottom: 20px; text-align: center; }
-
-    .control {
-      width: 80vw;
-      max-width: 300px;
-      margin: 10px 0;
-      text-align: center;
-    }
-
-    .toggleButton {
-      width: 100%;
-      height: 70px;
-      font-size: 1.8em;
-      border: none;
-      border-radius: 15px;
-      cursor: pointer;
-      margin-top: 5px;
-      transition: background-color 0.2s;
-    }
-
-    .numberInput, .textInput {
-      width: 100%;
-      font-size: 1.5em;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      margin-top: 5px;
-      box-sizing: border-box;
-    }
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    input, button { font-size: 1.2em; padding: 10px; margin: 10px; }
   </style>
 </head>
 <body>
 
-  <h1>Firebase Game Controller</h1>
+<h1>Join a Room</h1>
 
-  <div class="control">
-    <p>Toggle 1: <span id="toggle1State">loading...</span></p>
-    <button id="toggle1Button" class="toggleButton">Flip Toggle 1</button>
-  </div>
+<input type="text" id="roomCodeInput" placeholder="Enter room code">
+<button id="joinButton">Join Room</button>
 
-  <div class="control">
-    <p>Toggle 2: <span id="toggle2State">loading...</span></p>
-    <button id="toggle2Button" class="toggleButton">Flip Toggle 2</button>
-  </div>
+<p id="status">Status: -</p>
+<pre id="roomData"></pre>
 
-  <div class="control">
-    <p>Speed: <span id="speedState">loading...</span></p>
-    <input type="number" id="speedInput" class="numberInput" min="0" max="10">
-  </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-  <div class="control">
-    <p>Mode: <span id="modeState">loading...</span></p>
-    <input type="text" id="modeInput" class="textInput" placeholder="Enter mode">
-  </div>
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    appId: "YOUR_APP_ID"
+  };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
-      authDomain: "cath-lab-sim.firebaseapp.com",
-      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "cath-lab-sim",
-      storageBucket: "cath-lab-sim.firebasestorage.app",
-      appId: "1:626683715160:web:ac69363c84f5a40195742d"
-    };
+  const joinButton = document.getElementById("joinButton");
+  const roomInput = document.getElementById("roomCodeInput");
+  const statusEl = document.getElementById("status");
+  const roomDataEl = document.getElementById("roomData");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+  joinButton.addEventListener("click", async () => {
+    const code = roomInput.value.trim().toUpperCase();
+    if (!code) return alert("Enter a room code");
 
-    // References
-    const toggle1Ref = ref(db, "Game/toggle1");
-    const toggle2Ref = ref(db, "Game/toggle2");
-    const speedRef = ref(db, "Game/speed");
-    const modeRef = ref(db, "Game/mode");
+    const roomRef = ref(db, "rooms/" + code);
 
-    // DOM Elements
-    const toggle1StateEl = document.getElementById("toggle1State");
-    const toggle2StateEl = document.getElementById("toggle2State");
-    const speedStateEl = document.getElementById("speedState");
-    const modeStateEl = document.getElementById("modeState");
+    try {
+      const snapshot = await get(roomRef);
+      if (snapshot.exists()) {
+        statusEl.textContent = "Status: Room found!";
+        roomDataEl.textContent = JSON.stringify(snapshot.val(), null, 2);
+      } else {
+        statusEl.textContent = "Status: Room not found";
+        roomDataEl.textContent = "";
+      }
+    } catch (error) {
+      statusEl.textContent = "Status: Error fetching room";
+      console.error(error);
+    }
+  });
+</script>
 
-    const toggle1Button = document.getElementById("toggle1Button");
-    const toggle2Button = document.getElementById("toggle2Button");
-    const speedInput = document.getElementById("speedInput");
-    const modeInput = document.getElementById("modeInput");
-
-    // Current values cache
-    let toggle1Value = false;
-    let toggle2Value = false;
-    let speedValue = 0;
-    let modeValue = "";
-
-    // --- Real-time listeners ---
-    onValue(toggle1Ref, snapshot => {
-      toggle1Value = snapshot.val() ?? false;
-      toggle1StateEl.innerText = toggle1Value;
-      toggle1Button.textContent = toggle1Value ? "ON" : "OFF";
-      toggle1Button.style.backgroundColor = toggle1Value ? "#28a745" : "#dc3545";
-    });
-
-    onValue(toggle2Ref, snapshot => {
-      toggle2Value = snapshot.val() ?? false;
-      toggle2StateEl.innerText = toggle2Value;
-      toggle2Button.textContent = toggle2Value ? "ON" : "OFF";
-      toggle2Button.style.backgroundColor = toggle2Value ? "#28a745" : "#dc3545";
-    });
-
-    onValue(speedRef, snapshot => {
-      speedValue = snapshot.val() ?? 0;
-      speedStateEl.innerText = speedValue;
-      speedInput.value = speedValue;
-    });
-
-    onValue(modeRef, snapshot => {
-      modeValue = snapshot.val() ?? "";
-      modeStateEl.innerText = modeValue;
-      modeInput.value = modeValue;
-    });
-
-    // --- Event handlers ---
-    toggle1Button.addEventListener("click", () => set(toggle1Ref, !toggle1Value));
-    toggle2Button.addEventListener("click", () => set(toggle2Ref, !toggle2Value));
-
-    speedInput.addEventListener("change", () => {
-      const val = parseInt(speedInput.value) || 0;
-      set(speedRef, val);
-    });
-
-    modeInput.addEventListener("change", () => set(modeRef, modeInput.value));
-
-  </script>
 </body>
 </html>
+
