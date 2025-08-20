@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhythm Controller</title>
+</head>
+<body>
+<h2>Rhythm Control</h2>
+<button onclick="setRhythm(0)">NSR (0)</button>
+<button onclick="setRhythm(1)">VT (1)</button>
+<button onclick="setRhythm(2)">Sinus Tach (2)</button>
+<button onclick="setRhythm(3)">Asystole (3)</button>
+
+<p>Current Rhythm: <span id="currentRhythm">loading...</span></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",   // Your **API key**
+  authDomain: "cath-lab-sim.firebaseapp.com",          // Your **Auth domain**
+  databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app", // Your **Realtime Database URL**
+  projectId: "cath-lab-sim",                           // Your **Project ID**
+  storageBucket: "cath-lab-sim.firebasestorage.app",   // Your **Storage bucket**
+  messagingSenderId: "626683715160",                   // Your **Sender ID** (used for messaging, FCM)
+  appId: "1:626683715160:web:ac69363c84f5a40195742d",  // Your **App ID**
+  measurementId: "G-8FKR5QNEYT"                        // Your **Analytics Measurement ID**
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Get the room code from localStorage
+const roomCode = localStorage.getItem("roomCode");
+const rhythmRef = ref(db, `rooms/${roomCode}/rhythm`);
+
+// Function to update rhythm
+window.setRhythm = function(value) {
+    set(rhythmRef, value);
+};
+
+// Listen for changes and update display
+onValue(rhythmRef, (snapshot) => {
+    const val = snapshot.val();
+    document.getElementById("currentRhythm").innerText = val !== null ? val : "N/A";
+});
+</script>
+</body>
+</html>
