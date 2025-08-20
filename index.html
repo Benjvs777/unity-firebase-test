@@ -4,145 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cath Lab Simulator</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #f2f2f2;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 10px;
-    }
-
-    .container {
-      background: white;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 420px;
-    }
-
-    h2 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      background-color: #007BFF;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      color: white;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .btn-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    p {
-      text-align: center;
-      margin-top: 15px;
-      font-size: 18px;
-      color: #333;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
+    <h2>Cath Lab Simulator</h2>
+    <h3>Enter Room Code</h3>
 
-    <!-- Step 1: Join Room -->
-    <div id="joinScreen">
-      <h2>Enter Room Code</h2>
-      <input type="text" id="roomInput" placeholder="Room code">
-      <button id="joinRoom">Join Room</button>
-    </div>
-
-    <!-- Step 2: Controller -->
-    <div id="controllerScreen" class="hidden">
-      <h2>Modify Rhythm</h2>
-      <div class="btn-grid">
-        <button onclick="setRhythm(0)">NSR</button>
-        <button onclick="setRhythm(1)">VT</button>
-        <button onclick="setRhythm(2)">Sinus Tach</button>
-        <button onclick="setRhythm(3)">Asystole</button>
-      </div>
-      <p>Current Rhythm: <span id="currentRhythm">loading...</span></p>
-    </div>
+    <input type="text" id="roomInput" placeholder="Room code">
+    <button id="joinRoom">Join Room</button>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
-      authDomain: "cath-lab-sim.firebaseapp.com",
-      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "cath-lab-sim",
-      storageBucket: "cath-lab-sim.firebasestorage.app",
-      messagingSenderId: "626683715160",
-      appId: "1:626683715160:web:ac69363c84f5a40195742d",
-      measurementId: "G-8FKR5QNEYT"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    let rhythmRef;
-
-    // Handle Join Room
+  <script>
     document.getElementById("joinRoom").addEventListener("click", () => {
       const roomCode = document.getElementById("roomInput").value.trim();
-      if(roomCode){
-        // Save and switch screens
+      if (roomCode) {
+        // Store room code in localStorage to use on the next page
         localStorage.setItem("roomCode", roomCode);
-        document.getElementById("joinScreen").classList.add("hidden");
-        document.getElementById("controllerScreen").classList.remove("hidden");
-
-        rhythmRef = ref(db, `rooms/${roomCode}/rhythm`);
-
-        // Listen for changes
-        onValue(rhythmRef, (snapshot) => {
-          const val = snapshot.val();
-          document.getElementById("currentRhythm").innerText = val !== null ? val : "N/A";
-        });
+        // Navigate to controller page
+        window.location.href = "controller.html";
       }
     });
-
-    // Update Rhythm
-    window.setRhythm = function(value) {
-      if(rhythmRef){
-        set(rhythmRef, value);
-      }
-    };
   </script>
 </body>
 </html>
+
