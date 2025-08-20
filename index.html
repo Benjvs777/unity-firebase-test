@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <style>
     input { text-transform: uppercase; } /* visually force uppercase */
+    #errorMsg { color: red; display: none; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -16,28 +17,54 @@
 
     <input type="text" id="roomInput" placeholder="Room code" maxlength="6">
     <button id="joinRoom">Join Room</button>
-    <p id="errorMsg" style="color:red; display:none;">Invalid room code! Use only A-Z and 0-9.</p>
+    <p id="errorMsg">Invalid room code or room does not exist!</p>
   </div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
+      authDomain: "cath-lab-sim.firebaseapp.com",
+      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "cath-lab-sim",
+      storageBucket: "cath-lab-sim.firebasestorage.app",
+      messagingSenderId: "626683715160",
+      appId: "1:626683715160:web:ac69363c84f5a40195742d",
+      measurementId: "G-8FKR5QNEYT"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     const roomInput = document.getElementById("roomInput");
+    const joinBtn = document.getElementById("joinRoom");
     const errorMsg = document.getElementById("errorMsg");
 
-    // Force input to uppercase while typing
+    // Force uppercase while typing
     roomInput.addEventListener("input", () => {
       roomInput.value = roomInput.value.toUpperCase();
     });
 
-    document.getElementById("joinRoom").addEventListener("click", () => {
-      const roomCode = roomInput.value.trim();
-      // Validate: only uppercase letters and numbers
+    joinBtn.addEventListener("click", async () => {
+      const roomCode = roomInput.value.trim().toUpperCase();
       const validPattern = /^[A-Z0-9]{1,6}$/;
 
-      if (validPattern.test(roomCode)) {
-        errorMsg.style.display = "none";
+      if (!validPattern.test(roomCode)) {
+        errorMsg.textContent = "Invalid room code! Use only A-Z and 0-9.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      const roomRef = ref(db, `rooms/${roomCode}`);
+      const snapshot = await get(roomRef);
+
+      if (snapshot.exists()) {
         localStorage.setItem("roomCode", roomCode);
         window.location.href = "controller.html";
       } else {
+        errorMsg.textContent = "Room does not exist. Check the code.";
         errorMsg.style.display = "block";
       }
     });
