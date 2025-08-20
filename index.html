@@ -5,27 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cath Lab Simulator</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    input { text-transform: uppercase; } /* visually force uppercase */
+  </style>
 </head>
 <body>
   <div class="container">
     <h2>Cath Lab Simulator</h2>
     <h3>Enter Room Code</h3>
 
-    <input type="text" id="roomInput" placeholder="Room code">
+    <input type="text" id="roomInput" placeholder="Room code" maxlength="6">
     <button id="joinRoom">Join Room</button>
+    <p id="errorMsg" style="color:red; display:none;">Invalid room code! Use only A-Z and 0-9.</p>
   </div>
 
   <script>
+    const roomInput = document.getElementById("roomInput");
+    const errorMsg = document.getElementById("errorMsg");
+
+    // Force input to uppercase while typing
+    roomInput.addEventListener("input", () => {
+      roomInput.value = roomInput.value.toUpperCase();
+    });
+
     document.getElementById("joinRoom").addEventListener("click", () => {
-      const roomCode = document.getElementById("roomInput").value.trim();
-      if (roomCode) {
-        // Store room code in localStorage to use on the next page
+      const roomCode = roomInput.value.trim();
+      // Validate: only uppercase letters and numbers
+      const validPattern = /^[A-Z0-9]{1,6}$/;
+
+      if (validPattern.test(roomCode)) {
+        errorMsg.style.display = "none";
         localStorage.setItem("roomCode", roomCode);
-        // Navigate to controller page
         window.location.href = "controller.html";
+      } else {
+        errorMsg.style.display = "block";
       }
     });
   </script>
 </body>
 </html>
-
