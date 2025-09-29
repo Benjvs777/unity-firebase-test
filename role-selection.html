@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Select Role</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <link rel="stylesheet" href="style.css">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,92 +12,110 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
-      background: #f0f4f8;
+      background: #f5f5f5;
     }
     .container {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      background: white;
       padding: 20px;
       border-radius: 12px;
-      background: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 300px;
+    }
+    h2 {
+      margin-bottom: 20px;
     }
     button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
       padding: 12px;
-      font-size: 18px;
+      font-size: 16px;
       border: none;
       border-radius: 8px;
-      background: #007bff;
+      background: #007BFF;
       color: white;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background 0.2s;
     }
-    button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-    button:hover:not(:disabled) {
+    button:hover {
       background: #0056b3;
+    }
+    #errorMsg {
+      color: red;
+      margin-top: 15px;
+      display: none;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <button onclick="selectRole('Admin')" id="Admin">Admin</button>
-    <button onclick="selectRole('Operator')" id="Operator">Operator</button>
-    <button onclick="selectRole('Nurse')" id="Nurse">Nurse</button>
-    <button onclick="selectRole('Radiographer')" id="Radiographer">Radiographer</button>
-    <button onclick="selectRole('Physiologist')" id="Physiologist">Physiologist</button>
+    <h2>Select Your Role</h2>
+    <button data-role="Admin" data-page="controller.html">Admin</button>
+    <button data-role="Operator" data-page="operator.html">Operator</button>
+    <button data-role="Nurse" data-page="nurse.html">Nurse</button>
+    <button data-role="Radiographer" data-page="rad.html">Radiographer</button>
+    <button data-role="Physiologist" data-page="phys.html">Physiologist</button>
+    <p id="errorMsg">Role already taken. Choose another one.</p>
   </div>
 
-  <script>
-    // Firebase config
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "SENDER_ID",
-      appId: "APP_ID"
+      apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
+      authDomain: "cath-lab-sim.firebaseapp.com",
+      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "cath-lab-sim",
+      storageBucket: "cath-lab-sim.firebasestorage.app",
+      messagingSenderId: "626683715160",
+      appId: "1:626683715160:web:ac69363c84f5a40195742d",
+      measurementId: "G-8FKR5QNEYT"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    const roomCode = "ABCD"; // For now, static. Later you can pass it dynamically.
-    const playerID = "player-" + Math.random().toString(36).substr(2, 9);
+    const errorMsg = document.getElementById("errorMsg");
+    const buttons = document.querySelectorAll("button");
 
-    // Listen for role changes to disable taken ones
-    firebase.database().ref(`rooms/${roomCode}/roles`).on("value", snapshot => {
-      const roles = snapshot.val();
-      for (const role in roles) {
-        const button = document.getElementById(role);
-        if (roles[role]) {
-          button.disabled = true;
-        } else {
-          button.disabled = false;
-        }
-      }
-    });
-
-    function selectRole(role) {
-      const roleRef = firebase.database().ref(`rooms/${roomCode}/roles/${role}`);
-      roleRef.transaction(currentValue => {
-        if (currentValue === null) {
-          return playerID; // Assign role
-        }
-        return; // Reject if taken
-      }).then(result => {
-        if (result.committed) {
-          // Role successfully assigned
-          window.location.href = "controller.html?role=" + role + "&id=" + playerID;
-        } else {
-          alert("Role already taken!");
-        }
-      });
+    // Grab the room code from localStorage (set during login)
+    const roomCode = localStorage.getItem("roomCode");
+    if (!roomCode) {
+      alert("No room code found. Please join a room first.");
+      window.location.href = "index.html"; // fallback to login
     }
+
+    buttons.forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const role = btn.dataset.role;
+        const page = btn.dataset.page;
+        const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
+
+        // Use transaction to prevent duplicates
+        runTransaction(roleRef, currentValue => {
+          if (!currentValue) {
+            // Mark the role with a unique id (timestamp + random)
+            return `user_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+          }
+          return currentValue; // If already taken, do not overwrite
+        }).then(result => {
+          if (result.committed && result.snapshot.val()) {
+            // Success → Redirect to role page
+            window.location.href = page;
+          } else {
+            // Role was already taken
+            errorMsg.style.display = "block";
+          }
+        }).catch(err => {
+          console.error("Error assigning role:", err);
+          errorMsg.textContent = "Error. Try again.";
+          errorMsg.style.display = "block";
+        });
+      });
+    });
   </script>
 </body>
 </html>
+
