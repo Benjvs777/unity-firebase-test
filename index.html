@@ -15,8 +15,6 @@
     <h2>Cath Lab Simulator</h2>
     <h3>Enter Room Code</h3>
     <input type="text" id="roomInput" placeholder="Room code" maxlength="6">
-
-    <h3>Enter Your Name</h3>
     <input type="text" id="usernameInput" placeholder="Your name" maxlength="12">
 
     <button id="joinRoom">Join Room</button>
@@ -91,7 +89,9 @@
         localStorage.setItem("username", username);
 
         // Navigate to controller
-        window.location.href = "controller.html";
+        //window.location.href = "controller.html";
+        // Navigate to Role Selection
+        window.location.href = "role-selection.html";
       } else {
         errorMsg.textContent = "Room does not exist. Check the code.";
         errorMsg.style.display = "block";
