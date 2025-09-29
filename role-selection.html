@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Select Role</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f0f4f8;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 12px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button onclick="selectRole('Admin')" id="Admin">Admin</button>
+    <button onclick="selectRole('Operator')" id="Operator">Operator</button>
+    <button onclick="selectRole('Nurse')" id="Nurse">Nurse</button>
+    <button onclick="selectRole('Radiographer')" id="Radiographer">Radiographer</button>
+    <button onclick="selectRole('Physiologist')" id="Physiologist">Physiologist</button>
+  </div>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const roomCode = "ABCD"; // For now, static. Later you can pass it dynamically.
+    const playerID = "player-" + Math.random().toString(36).substr(2, 9);
+
+    // Listen for role changes to disable taken ones
+    firebase.database().ref(`rooms/${roomCode}/roles`).on("value", snapshot => {
+      const roles = snapshot.val();
+      for (const role in roles) {
+        const button = document.getElementById(role);
+        if (roles[role]) {
+          button.disabled = true;
+        } else {
+          button.disabled = false;
+        }
+      }
+    });
+
+    function selectRole(role) {
+      const roleRef = firebase.database().ref(`rooms/${roomCode}/roles/${role}`);
+      roleRef.transaction(currentValue => {
+        if (currentValue === null) {
+          return playerID; // Assign role
+        }
+        return; // Reject if taken
+      }).then(result => {
+        if (result.committed) {
+          // Role successfully assigned
+          window.location.href = "controller.html?role=" + role + "&id=" + playerID;
+        } else {
+          alert("Role already taken!");
+        }
+      });
+    }
+  </script>
+</body>
+</html>
