@@ -2,9 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Select Role</title>
-  <link rel="stylesheet" href="style.css">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -22,9 +20,7 @@
       text-align: center;
       width: 300px;
     }
-    h2 {
-      margin-bottom: 20px;
-    }
+    h2 { margin-bottom: 20px; }
     button {
       display: block;
       width: 100%;
@@ -38,9 +34,7 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    button:hover {
-      background: #0056b3;
-    }
+    button:hover { background: #0056b3; }
     #errorMsg {
       color: red;
       margin-top: 15px;
@@ -80,11 +74,12 @@
     const errorMsg = document.getElementById("errorMsg");
     const buttons = document.querySelectorAll("button");
 
-    // Grab the room code from localStorage (set during login)
     const roomCode = localStorage.getItem("roomCode");
-    if (!roomCode) {
-      alert("No room code found. Please join a room first.");
-      window.location.href = "index.html"; // fallback to login
+    const username = localStorage.getItem("username");
+
+    if (!roomCode || !username) {
+      alert("Missing room or username. Please rejoin.");
+      window.location.href = "join.html";
     }
 
     buttons.forEach(btn => {
@@ -93,19 +88,16 @@
         const page = btn.dataset.page;
         const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
 
-        // Use transaction to prevent duplicates
         runTransaction(roleRef, currentValue => {
           if (!currentValue) {
-            // Mark the role with a unique id (timestamp + random)
-            return `user_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+            return username; // store the actual username
           }
-          return currentValue; // If already taken, do not overwrite
+          return currentValue; // already taken
         }).then(result => {
-          if (result.committed && result.snapshot.val()) {
-            // Success → Redirect to role page
+          if (result.committed && result.snapshot.val() === username) {
+            // Redirect to role-specific controller
             window.location.href = page;
           } else {
-            // Role was already taken
             errorMsg.style.display = "block";
           }
         }).catch(err => {
@@ -118,4 +110,3 @@
   </script>
 </body>
 </html>
-
