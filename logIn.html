@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Join Room</title>
   <style>
     body { font-family: Arial; text-align: center; margin-top: 50px; }
@@ -10,57 +9,62 @@
   </style>
 </head>
 <body>
+  <h1>Join a Room</h1>
 
-<h1>Join a Room</h1>
+  <input type="text" id="roomCodeInput" placeholder="Enter room code">
+  <input type="text" id="usernameInput" placeholder="Enter your name">
+  <button id="joinButton">Join Room</button>
 
-<input type="text" id="roomCodeInput" placeholder="Enter room code">
-<button id="joinButton">Join Room</button>
+  <p id="status">Status: -</p>
 
-<p id="status">Status: -</p>
-<pre id="roomData"></pre>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
+      authDomain: "cath-lab-sim.firebaseapp.com",
+      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "cath-lab-sim",
+      storageBucket: "cath-lab-sim.firebasestorage.app",
+      messagingSenderId: "626683715160",
+      appId: "1:626683715160:web:ac69363c84f5a40195742d",
+      measurementId: "G-8FKR5QNEYT"
+    };
 
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    appId: "YOUR_APP_ID"
-  };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+    const joinButton = document.getElementById("joinButton");
+    const statusEl = document.getElementById("status");
 
-  const joinButton = document.getElementById("joinButton");
-  const roomInput = document.getElementById("roomCodeInput");
-  const statusEl = document.getElementById("status");
-  const roomDataEl = document.getElementById("roomData");
+    joinButton.addEventListener("click", async () => {
+      const code = document.getElementById("roomCodeInput").value.trim().toUpperCase();
+      const username = document.getElementById("usernameInput").value.trim();
 
-  joinButton.addEventListener("click", async () => {
-    const code = roomInput.value.trim().toUpperCase();
-    if (!code) return alert("Enter a room code");
+      if (!code) return alert("Enter a room code");
+      if (!username) return alert("Enter your name");
 
-    const roomRef = ref(db, "rooms/" + code);
+      const roomRef = ref(db, "rooms/" + code);
 
-    try {
-      const snapshot = await get(roomRef);
-      if (snapshot.exists()) {
-        statusEl.textContent = "Status: Room found!";
-        roomDataEl.textContent = JSON.stringify(snapshot.val(), null, 2);
-      } else {
-        statusEl.textContent = "Status: Room not found";
-        roomDataEl.textContent = "";
+      try {
+        const snapshot = await get(roomRef);
+        if (snapshot.exists()) {
+          statusEl.textContent = "Status: Room found!";
+          // Save to localStorage
+          localStorage.setItem("roomCode", code);
+          localStorage.setItem("username", username);
+          // Go to role selection
+          window.location.href = "roles.html";
+        } else {
+          statusEl.textContent = "Status: Room not found";
+        }
+      } catch (error) {
+        statusEl.textContent = "Status: Error fetching room";
+        console.error(error);
       }
-    } catch (error) {
-      statusEl.textContent = "Status: Error fetching room";
-      console.error(error);
-    }
-  });
-</script>
-
+    });
+  </script>
 </body>
 </html>
+
