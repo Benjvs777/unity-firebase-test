@@ -2,31 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Select Role</title>
+  <title>Main Page</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      background: #f5f5f5;
     }
-    .container {
+
+    .floating-container {
+      position: relative;
       background: white;
-      padding: 20px;
+      padding: 30px;
       border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       text-align: center;
-      width: 300px;
+      width: 90%;
+      max-width: 400px;
     }
-    h2 { margin-bottom: 20px; }
-    button {
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 1.6rem;
+    }
+
+    button, .logout-btn {
       display: block;
       width: 100%;
-      margin: 10px 0;
-      padding: 12px;
-      font-size: 16px;
+      margin: 12px 0;
+      padding: 14px;
+      font-size: 1.1rem;
       border: none;
       border-radius: 8px;
       background: #007BFF;
@@ -34,28 +44,56 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    button:hover { background: #0056b3; }
-    #errorMsg {
-      color: red;
-      margin-top: 15px;
-      display: none;
+
+    button:hover, .logout-btn:hover {
+      background: #0056b3;
+    }
+
+    /* Floating logout button */
+    .logout-btn {
+      position: absolute;
+      top: -55px;
+      right: 0;
+      width: auto;
+      padding: 10px 18px;
+      font-size: 1rem;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .floating-container {
+        width: 90%;
+        padding: 20px;
+      }
+
+      h2 {
+        font-size: 1.4rem;
+      }
+
+      button {
+        padding: 16px;
+        font-size: 1.2rem;
+      }
+
+      .logout-btn {
+        top: -50px;
+        right: 10px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Select Your Role</h2>
-    <button data-role="admin" data-page="controller.html">Admin</button>
-    <button data-role="operatorUser" data-page="operatorController.html">Operator</button>
-    <button data-role="nurse" data-page="nurse.html">Nurse</button>
-    <button data-role="radiographer" data-page="rad.html">Radiographer</button>
-    <button data-role="physiologist" data-page="phys.html">Physiologist</button>
-    <p id="errorMsg">Role already taken. Choose another one.</p>
+  <div class="floating-container">
+    <button class="logout-btn" id="logoutBtn">Logout</button>
+    <h2>Welcome to Cath Lab Sim</h2>
+    <button>Start Simulation</button>
+    <button>Settings</button>
+    <button>Help</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
@@ -71,41 +109,31 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const errorMsg = document.getElementById("errorMsg");
-    const buttons = document.querySelectorAll("button");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-    const roomCode = localStorage.getItem("roomCode");
-    const username = localStorage.getItem("username");
+    logoutBtn.addEventListener("click", async () => {
+      const roomCode = localStorage.getItem("roomCode");
+      const username = localStorage.getItem("username");
+      if (!roomCode || !username) {
+        window.location.href = "join.html";
+        return;
+      }
 
-    if (!roomCode || !username) {
-      alert("Missing room or username. Please rejoin.");
+      const rolesRef = ref(db, `rooms/${roomCode}/roles`);
+      const snapshot = await fetch(`https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app/rooms/${roomCode}/roles.json`);
+      const roles = await snapshot.json();
+
+      // Remove user from any assigned role
+      for (const role in roles) {
+        if (roles[role] === username) {
+          await update(ref(db, `rooms/${roomCode}/roles`), { [role]: null });
+        }
+      }
+
+      // Clear local data and return to join page
+      localStorage.removeItem("roomCode");
+      localStorage.removeItem("username");
       window.location.href = "join.html";
-    }
-
-    buttons.forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const role = btn.dataset.role;
-        const page = btn.dataset.page;
-        const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
-
-        runTransaction(roleRef, currentValue => {
-          if (!currentValue) {
-            return username; // store the actual username
-          }
-          return currentValue; // already taken
-        }).then(result => {
-          if (result.committed && result.snapshot.val() === username) {
-            // Redirect to role-specific controller
-            window.location.href = page;
-          } else {
-            errorMsg.style.display = "block";
-          }
-        }).catch(err => {
-          console.error("Error assigning role:", err);
-          errorMsg.textContent = "Error. Try again.";
-          errorMsg.style.display = "block";
-        });
-      });
     });
   </script>
 </body>
