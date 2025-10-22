@@ -142,7 +142,7 @@
 
     if (!roomCode || !username) {
       alert("Missing room or username. Please rejoin.");
-      window.location.href = "join.html";
+      window.location.href = "index.html";
     }
 
     // Role selection logic (unchanged functionality)
@@ -179,7 +179,7 @@
       try {
         if (!roomCode || !username) {
           // no session — just go back
-          window.location.href = "join.html";
+          window.location.href = "index.html";
           return;
         }
 
@@ -201,7 +201,7 @@
         // clear local storage and go back to join
         localStorage.removeItem("roomCode");
         localStorage.removeItem("username");
-        window.location.href = "join.html";
+        window.location.href = "index.html";
       } catch (err) {
         console.error("Logout error:", err);
         // keep user on page — you might choose to show an error toast here
