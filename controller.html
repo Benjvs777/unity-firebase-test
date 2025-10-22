@@ -4,9 +4,81 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rhythm Controller</title>
-  <link rel="stylesheet" href="style.css"> <!-- Add shared CSS -->
+  <link rel="stylesheet" href="style.css"> <!-- Add shared CSS if any -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 320px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #007BFF;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #logoutBtn {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      padding: 12px 16px;
+      background: #FF4D4F;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      z-index: 1200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      transition: background 0.12s ease, transform 0.06s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #logoutBtn:active { transform: translateY(1px); }
+    #logoutBtn:hover { background: #d9363e; }
+
+    @media (max-width: 520px) {
+      .container { width: 92%; padding: 18px; }
+      button { padding: 16px; font-size: 18px; border-radius: 12px; }
+      #logoutBtn { padding: 14px 18px; font-size: 16px; top:12px; right:12px; border-radius:10px; }
+      h2 { font-size: 1.2rem; }
+    }
+  </style>
 </head>
 <body>
+  <!-- Floating logout button -->
+  <button id="logoutBtn" aria-label="Logout">Logout</button>
+
   <div class="container">
     <h2>Modify Rhythm</h2>
 
@@ -22,7 +94,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
@@ -39,19 +111,49 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Get the room code from localStorage
     const roomCode = localStorage.getItem("roomCode");
+    const username = localStorage.getItem("username");
+
+    if (!roomCode || !username) {
+      alert("Missing room or username. Please rejoin.");
+      window.location.href = "index.html";
+    }
+
+    // Rhythm control logic
     const rhythmRef = ref(db, `rooms/${roomCode}/rhythm`);
 
-    // Function to update rhythm
     window.setRhythm = function(value) {
-        set(rhythmRef, value);
+      set(rhythmRef, value);
     };
 
-    // Listen for changes and update display
     onValue(rhythmRef, (snapshot) => {
-        const val = snapshot.val();
-        document.getElementById("currentRhythm").innerText = val !== null ? val : "N/A";
+      const val = snapshot.val();
+      document.getElementById("currentRhythm").innerText = val !== null ? val : "N/A";
+    });
+
+    // Logout button logic (same as before)
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        const roles = ["admin", "operatorUser", "nurse", "radiographer", "physiologist"];
+        for (const role of roles) {
+          const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
+          const snap = await get(roleRef);
+          if (snap.exists() && snap.val() === username) {
+            await set(roleRef, "");
+          }
+        }
+
+        const userRef = ref(db, `rooms/${roomCode}/users/${username}`);
+        await remove(userRef);
+
+        localStorage.removeItem("roomCode");
+        localStorage.removeItem("username");
+        window.location.href = "index.html";
+      } catch (err) {
+        console.error("Logout error:", err);
+      }
     });
   </script>
 </body>
