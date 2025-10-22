@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physiologist</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: white;
+      color: #333;
+      min-height: 100vh;
+    }
+
+    /* Floating logout button */
+    #logoutBtn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      padding: 12px 18px;
+      background: #FF4D4F;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    main {
+      padding: 20px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      #logoutBtn {
+        font-size: 18px;
+        padding: 14px 22px;  /* bigger touch area */
+      }
+      main {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="logoutBtn">Logout</button>
+
+  <main>
+    <h1>PHYSIOLOGIST CONTROLLER</h1>
+    <p>Area in development</p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getDatabase, ref, get, remove, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const roomCode = localStorage.getItem("roomCode");
+    const username = localStorage.getItem("username");
+
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    logoutBtn.addEventListener("click", async () => {
+      if (!roomCode || !username) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      try {
+        // 1. Remove user from their role
+        const roles = ["admin", "operatorUser", "nurse", "radiographer", "physiologist"];
+        for (let role of roles) {
+          const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
+          const snapshot = await get(roleRef);
+          if (snapshot.exists() && snapshot.val() === username) {
+            await set(roleRef, ""); // free the role
+          }
+        }
+
+        // 2. Remove user record
+        const userRef = ref(db, `rooms/${roomCode}/users/${username}`);
+        await remove(userRef);
+
+        // 3. Clear local storage and redirect
+        localStorage.removeItem("roomCode");
+        localStorage.removeItem("username");
+        window.location.href = "index.html";
+      } catch (err) {
+        console.error("Error logging out:", err);
+      }
+    });
+  </script>
+
+</body>
+</html>
