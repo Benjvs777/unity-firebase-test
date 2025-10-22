@@ -2,98 +2,121 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Main Page</title>
+  <title>Select Role</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    :root{
+      --card-width: 320px;
+      --accent: #007BFF;
+      --accent-dark: #0056b3;
+      --danger: #FF4D4F;
+      --danger-dark: #d9363e;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+    }
+
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
+      background: #f5f5f5;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
     }
 
-    .floating-container {
-      position: relative;
+    .container {
       background: white;
-      padding: 30px;
+      padding: 22px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
       text-align: center;
-      width: 90%;
-      max-width: 400px;
+      width: var(--card-width);
+      position: relative;
     }
 
     h2 {
-      margin-bottom: 20px;
-      font-size: 1.6rem;
+      margin: 0 0 18px;
+      font-size: 1.25rem;
+      color: #222;
     }
 
-    button, .logout-btn {
+    /* Role buttons (primary center content) */
+    .role-btn {
       display: block;
       width: 100%;
-      margin: 12px 0;
+      margin: 10px 0;
       padding: 14px;
-      font-size: 1.1rem;
+      font-size: 16px;
       border: none;
-      border-radius: 8px;
-      background: #007BFF;
+      border-radius: 10px;
+      background: var(--accent);
       color: white;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.16s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .role-btn:hover { background: var(--accent-dark); }
+
+    #errorMsg {
+      color: red;
+      margin-top: 14px;
+      display: none;
+      font-size: 0.95rem;
     }
 
-    button:hover, .logout-btn:hover {
-      background: #0056b3;
+    /* Floating logout button in the top-right of the viewport */
+    #logoutBtn {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      padding: 12px 16px;
+      background: var(--danger);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      cursor: pointer;
+      z-index: 1200;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      transition: background 0.12s ease, transform 0.06s ease;
+      -webkit-tap-highlight-color: transparent;
     }
+    #logoutBtn:active { transform: translateY(1px); }
+    #logoutBtn:hover { background: var(--danger-dark); }
 
-    /* Floating logout button */
-    .logout-btn {
-      position: absolute;
-      top: -55px;
-      right: 0;
-      width: auto;
-      padding: 10px 18px;
-      font-size: 1rem;
-      border-radius: 8px;
-    }
-
-    @media (max-width: 600px) {
-      .floating-container {
-        width: 90%;
-        padding: 20px;
-      }
-
-      h2 {
-        font-size: 1.4rem;
-      }
-
-      button {
-        padding: 16px;
-        font-size: 1.2rem;
-      }
-
-      .logout-btn {
-        top: -50px;
-        right: 10px;
-      }
+    @media (max-width: 520px) {
+      .container { width: 92%; padding: 18px; }
+      .role-btn { padding: 16px; font-size: 18px; border-radius: 12px; }
+      #logoutBtn { padding: 14px 18px; font-size: 16px; top:12px; right:12px; border-radius:10px; }
+      h2 { font-size: 1.15rem; }
     }
   </style>
 </head>
 <body>
-  <div class="floating-container">
-    <button class="logout-btn" id="logoutBtn">Logout</button>
-    <h2>Welcome to Cath Lab Sim</h2>
-    <button>Start Simulation</button>
-    <button>Settings</button>
-    <button>Help</button>
+
+  <!-- Floating logout button (fixed in viewport top-right) -->
+  <button id="logoutBtn" aria-label="Logout">Logout</button>
+
+  <div class="container" role="main" aria-labelledby="roleTitle">
+    <h2 id="roleTitle">Select Your Role</h2>
+
+    <!-- preserved original role buttons exactly -->
+    <button class="role-btn" data-role="admin" data-page="controller.html">Admin</button>
+    <button class="role-btn" data-role="operatorUser" data-page="operatorController.html">Operator</button>
+    <button class="role-btn" data-role="nurse" data-page="nurse.html">Nurse</button>
+    <button class="role-btn" data-role="radiographer" data-page="rad.html">Radiographer</button>
+    <button class="role-btn" data-role="physiologist" data-page="phys.html">Physiologist</button>
+
+    <p id="errorMsg">Role already taken. Choose another one.</p>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+    import { getDatabase, ref, runTransaction, get, set, remove } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBasY2nEGgmKsy-BbEsulzPINz7qojM_kM",
@@ -109,31 +132,80 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
+    const errorMsg = document.getElementById("errorMsg");
+    // only select the role buttons inside the container (not the logout)
+    const roleButtons = document.querySelectorAll(".container .role-btn");
     const logoutBtn = document.getElementById("logoutBtn");
 
-    logoutBtn.addEventListener("click", async () => {
-      const roomCode = localStorage.getItem("roomCode");
-      const username = localStorage.getItem("username");
-      if (!roomCode || !username) {
-        window.location.href = "join.html";
-        return;
-      }
+    const roomCode = localStorage.getItem("roomCode");
+    const username = localStorage.getItem("username");
 
-      const rolesRef = ref(db, `rooms/${roomCode}/roles`);
-      const snapshot = await fetch(`https://cath-lab-sim-default-rtdb.europe-west1.firebasedatabase.app/rooms/${roomCode}/roles.json`);
-      const roles = await snapshot.json();
-
-      // Remove user from any assigned role
-      for (const role in roles) {
-        if (roles[role] === username) {
-          await update(ref(db, `rooms/${roomCode}/roles`), { [role]: null });
-        }
-      }
-
-      // Clear local data and return to join page
-      localStorage.removeItem("roomCode");
-      localStorage.removeItem("username");
+    if (!roomCode || !username) {
+      alert("Missing room or username. Please rejoin.");
       window.location.href = "join.html";
+    }
+
+    // Role selection logic (unchanged functionality)
+    roleButtons.forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const role = btn.dataset.role;
+        const page = btn.dataset.page;
+        const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
+
+        // Use transaction to avoid race conditions
+        runTransaction(roleRef, currentValue => {
+          if (!currentValue) {
+            return username; // claim role with the actual username
+          }
+          return currentValue; // already taken
+        }).then(result => {
+          if (result.committed && result.snapshot.val() === username) {
+            // Success: go to controller page for that role
+            window.location.href = page;
+          } else {
+            // Role was already taken by someone else
+            errorMsg.style.display = "block";
+          }
+        }).catch(err => {
+          console.error("Error assigning role:", err);
+          errorMsg.textContent = "Error. Try again.";
+          errorMsg.style.display = "block";
+        });
+      });
+    });
+
+    // Logout (floating button): frees role slot, removes user entry, clears localStorage, redirects
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        if (!roomCode || !username) {
+          // no session — just go back
+          window.location.href = "join.html";
+          return;
+        }
+
+        // Check each role; if it matches this username, free it
+        const roles = ["admin", "operatorUser", "nurse", "radiographer", "physiologist"];
+        for (const role of roles) {
+          const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
+          const snap = await get(roleRef);
+          if (snap.exists() && snap.val() === username) {
+            // free slot — set to empty string
+            await set(roleRef, "");
+          }
+        }
+
+        // Remove user record if you store users under /rooms/{room}/users/{username}
+        const userRef = ref(db, `rooms/${roomCode}/users/${username}`);
+        await remove(userRef);
+
+        // clear local storage and go back to join
+        localStorage.removeItem("roomCode");
+        localStorage.removeItem("username");
+        window.location.href = "join.html";
+      } catch (err) {
+        console.error("Logout error:", err);
+        // keep user on page — you might choose to show an error toast here
+      }
     });
   </script>
 </body>
