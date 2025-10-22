@@ -133,7 +133,6 @@
     const db = getDatabase(app);
 
     const errorMsg = document.getElementById("errorMsg");
-    // only select the role buttons inside the container (not the logout)
     const roleButtons = document.querySelectorAll(".container .role-btn");
     const logoutBtn = document.getElementById("logoutBtn");
 
@@ -145,25 +144,47 @@
       window.location.href = "index.html";
     }
 
-    // Role selection logic (unchanged functionality)
+    // ✅ AUTO-REDIRECT CHECK (new part)
+    (async () => {
+      try {
+        const roles = [
+          { key: "admin", page: "controller.html" },
+          { key: "operatorUser", page: "operatorController.html" },
+          { key: "nurse", page: "nurseController.html" },
+          { key: "radiographer", page: "radiographerController.html" },
+          { key: "physiologist", page: "physiologistController.html" }
+        ];
+
+        for (const { key, page } of roles) {
+          const roleRef = ref(db, `rooms/${roomCode}/roles/${key}`);
+          const snap = await get(roleRef);
+          if (snap.exists() && snap.val() === username) {
+            // redirect to the correct page if user already holds a role
+            window.location.href = page;
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Auto-redirect check failed:", err);
+      }
+    })();
+
+    // Role selection logic (unchanged)
     roleButtons.forEach(btn => {
       btn.addEventListener("click", async () => {
         const role = btn.dataset.role;
         const page = btn.dataset.page;
         const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
 
-        // Use transaction to avoid race conditions
         runTransaction(roleRef, currentValue => {
           if (!currentValue) {
-            return username; // claim role with the actual username
+            return username;
           }
-          return currentValue; // already taken
+          return currentValue;
         }).then(result => {
           if (result.committed && result.snapshot.val() === username) {
-            // Success: go to controller page for that role
             window.location.href = page;
           } else {
-            // Role was already taken by someone else
             errorMsg.style.display = "block";
           }
         }).catch(err => {
@@ -174,37 +195,31 @@
       });
     });
 
-    // Logout (floating button): frees role slot, removes user entry, clears localStorage, redirects
+    // Logout logic (unchanged)
     logoutBtn.addEventListener("click", async () => {
       try {
         if (!roomCode || !username) {
-          // no session — just go back
           window.location.href = "index.html";
           return;
         }
 
-        // Check each role; if it matches this username, free it
         const roles = ["admin", "operatorUser", "nurse", "radiographer", "physiologist"];
         for (const role of roles) {
           const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
           const snap = await get(roleRef);
           if (snap.exists() && snap.val() === username) {
-            // free slot — set to empty string
             await set(roleRef, "");
           }
         }
 
-        // Remove user record if you store users under /rooms/{room}/users/{username}
         const userRef = ref(db, `rooms/${roomCode}/users/${username}`);
         await remove(userRef);
 
-        // clear local storage and go back to join
         localStorage.removeItem("roomCode");
         localStorage.removeItem("username");
         window.location.href = "index.html";
       } catch (err) {
         console.error("Logout error:", err);
-        // keep user on page — you might choose to show an error toast here
       }
     });
   </script>
