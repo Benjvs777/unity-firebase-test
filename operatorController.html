@@ -34,10 +34,30 @@
       text-align: center;
     }
 
+    #injectBtn {
+      margin-top: 30px;
+      padding: 14px 28px;
+      font-size: 18px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #injectBtn:hover {
+      background: #0056b3;
+    }
+
     @media (max-width: 600px) {
       #logoutBtn {
         font-size: 18px;
-        padding: 14px 22px;  /* bigger touch area */
+        padding: 14px 22px; /* bigger touch area */
+      }
+      #injectBtn {
+        font-size: 20px;
+        padding: 18px 32px; /* easier to tap */
       }
       main {
         padding: 15px;
@@ -52,11 +72,12 @@
   <main>
     <h1>OPERATOR CONTROLLER</h1>
     <p>Area in development</p>
+    <button id="injectBtn">Inject Contrast</button>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getDatabase, ref, get, remove, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+    import { getDatabase, ref, get, remove, set, update } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
@@ -74,7 +95,9 @@
     const username = localStorage.getItem("username");
 
     const logoutBtn = document.getElementById("logoutBtn");
+    const injectBtn = document.getElementById("injectBtn");
 
+    // 🔹 Logout logic
     logoutBtn.addEventListener("click", async () => {
       if (!roomCode || !username) {
         window.location.href = "index.html";
@@ -82,21 +105,18 @@
       }
 
       try {
-        // 1. Remove user from their role
         const roles = ["admin", "operatorUser", "nurse", "radiographer", "physiologist"];
         for (let role of roles) {
           const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
           const snapshot = await get(roleRef);
           if (snapshot.exists() && snapshot.val() === username) {
-            await set(roleRef, ""); // free the role
+            await set(roleRef, "");
           }
         }
 
-        // 2. Remove user record
         const userRef = ref(db, `rooms/${roomCode}/users/${username}`);
         await remove(userRef);
 
-        // 3. Clear local storage and redirect
         localStorage.removeItem("roomCode");
         localStorage.removeItem("username");
         window.location.href = "index.html";
@@ -104,7 +124,29 @@
         console.error("Error logging out:", err);
       }
     });
+
+    // 🔹 Inject Contrast logic
+    injectBtn.addEventListener("click", async () => {
+      if (!roomCode) return;
+
+      const injectRef = ref(db, `rooms/${roomCode}/isInjecting`);
+
+      try {
+        await set(injectRef, true);
+
+        // Optional: reset to false after short delay
+        setTimeout(async () => {
+          await set(injectRef, false);
+        }, 1000); // 1 second pulse
+
+      } catch (err) {
+        console.error("Error triggering injection:", err);
+      }
+    });
   </script>
+
+</body>
+</html>
 
 </body>
 </html>
