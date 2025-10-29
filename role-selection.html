@@ -44,7 +44,7 @@
       color: #222;
     }
 
-    /* Role buttons (primary center content) */
+    /* Role buttons */
     .role-btn {
       display: block;
       width: 100%;
@@ -68,7 +68,12 @@
       font-size: 0.95rem;
     }
 
-    /* Floating logout button in the top-right of the viewport */
+    #loadingMessage {
+      font-size: 1rem;
+      color: #444;
+    }
+
+    /* Floating logout button in top-right */
     #logoutBtn {
       position: fixed;
       top: 14px;
@@ -98,20 +103,23 @@
 </head>
 <body>
 
-  <!-- Floating logout button (fixed in viewport top-right) -->
+  <!-- Floating logout button -->
   <button id="logoutBtn" aria-label="Logout">Logout</button>
 
   <div class="container" role="main" aria-labelledby="roleTitle">
     <h2 id="roleTitle">Select Your Role</h2>
 
-    <!-- preserved original role buttons exactly -->
-    <button class="role-btn" data-role="admin" data-page="controller.html">Admin</button>
-    <button class="role-btn" data-role="operatorUser" data-page="operatorController.html">Operator</button>
-    <button class="role-btn" data-role="nurse" data-page="nurseController.html">Nurse</button>
-    <button class="role-btn" data-role="radiographer" data-page="radiographerController.html">Radiographer</button>
-    <button class="role-btn" data-role="physiologist" data-page="physiologistController.html">Physiologist</button>
+    <div id="loadingMessage">Checking your role...</div>
 
-    <p id="errorMsg">Role already taken. Choose another one.</p>
+    <div id="rolesContainer" style="display:none;">
+      <button class="role-btn" data-role="admin" data-page="controller.html">Admin</button>
+      <button class="role-btn" data-role="operatorUser" data-page="operatorController.html">Operator</button>
+      <button class="role-btn" data-role="nurse" data-page="nurseController.html">Nurse</button>
+      <button class="role-btn" data-role="radiographer" data-page="radiographerController.html">Radiographer</button>
+      <button class="role-btn" data-role="physiologist" data-page="physiologistController.html">Physiologist</button>
+
+      <p id="errorMsg">Role already taken. Choose another one.</p>
+    </div>
   </div>
 
   <script type="module">
@@ -144,7 +152,7 @@
       window.location.href = "index.html";
     }
 
-    // ✅ AUTO-REDIRECT CHECK (new part)
+    // ✅ Auto-redirect check (with loading guard)
     (async () => {
       try {
         const roles = [
@@ -155,21 +163,29 @@
           { key: "physiologist", page: "physiologistController.html" }
         ];
 
+        let redirected = false;
         for (const { key, page } of roles) {
           const roleRef = ref(db, `rooms/${roomCode}/roles/${key}`);
           const snap = await get(roleRef);
           if (snap.exists() && snap.val() === username) {
-            // redirect to the correct page if user already holds a role
+            redirected = true;
             window.location.href = page;
-            return;
+            break;
           }
+        }
+
+        // Only show buttons after check
+        if (!redirected) {
+          document.getElementById("loadingMessage").style.display = "none";
+          document.getElementById("rolesContainer").style.display = "block";
         }
       } catch (err) {
         console.error("Auto-redirect check failed:", err);
+        document.getElementById("loadingMessage").innerText = "Error checking role. Try reloading.";
       }
     })();
 
-    // Role selection logic (unchanged)
+    // Role selection logic
     roleButtons.forEach(btn => {
       btn.addEventListener("click", async () => {
         const role = btn.dataset.role;
@@ -177,9 +193,7 @@
         const roleRef = ref(db, `rooms/${roomCode}/roles/${role}`);
 
         runTransaction(roleRef, currentValue => {
-          if (!currentValue) {
-            return username;
-          }
+          if (!currentValue) return username;
           return currentValue;
         }).then(result => {
           if (result.committed && result.snapshot.val() === username) {
@@ -195,7 +209,7 @@
       });
     });
 
-    // Logout logic (unchanged)
+    // Logout logic
     logoutBtn.addEventListener("click", async () => {
       try {
         if (!roomCode || !username) {
